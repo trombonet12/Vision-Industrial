@@ -65,10 +65,8 @@ MMoon = imfilter(Moon, mask);
 SMoon = Moon - MMoon;
 
 figure("Name","Sharpened Moon and Masked Moon");
-subplot(1,2,1);
-imshow(SMoon);
-subplot(1,2,2);
-imshow(MMoon);
+subplot(1,2,1), imshow(SMoon), title('Sharpened');
+subplot(1,2,2), imshow(MMoon), title('Mascara');
 
 disp("3. Create a blurred version of the original image convolving it with an average filter. Then, subtract this resulting image from the original one, and add this resulting image again to the original one in order to sharp it. Display the results.");
 
