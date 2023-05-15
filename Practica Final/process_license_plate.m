@@ -36,6 +36,8 @@ function matricula = process_license_plate(imagen)
         plot(c(1), c(2), 'r.', 'MarkerSize', 10);
     end
 
+    hold off,
+
     %% A figure showing the image after a thresholding, the skeletons of the letters and the endpoints/branchpoints of the letters
     % Umbralización para resaltar las letras
     level = graythresh(I);
