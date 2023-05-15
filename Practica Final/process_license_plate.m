@@ -36,6 +36,24 @@ function matricula = process_license_plate(imagen)
         plot(c(1), c(2), 'r.', 'MarkerSize', 10);
     end
 
+    %% A figure showing the image after a thresholding, the skeletons of the letters and the endpoints/branchpoints of the letters
+    % Umbralización para resaltar las letras
+    level = graythresh(I);
+    BW = imbinarize(I, level);
+
+    % Encuentra el esqueleto de las letras
+    skeleton = bwmorph(BW, 'skel', Inf);
+
+    % Encuentra los puntos finales y puntos de bifurcación de las letras
+    endpoints = bwmorph(skeleton, 'endpoints');
+    branchpoints = bwmorph(skeleton, 'branchpoints');
+    
+    % Muestra los resultados
+    figure('Name', 'Umbralización, Esqueleto, Puntos Finales y Puntos de Bifurcación');
+    subplot(1,3,1), imshow(BW), title('Imagen Umbralizada');
+    subplot(1,3,2), imshow(skeleton), title('Esqueleto');
+    subplot(1,3,3), imshow(endpoints + branchpoints), title('Puntos Finales y Puntos de Bifurcación');
+
     %% Output
     matricula = 1;
 end
