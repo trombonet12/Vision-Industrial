@@ -10,22 +10,30 @@ function matricula = process_license_plate(imagen)
     subplot(1,2,2), imhist(I), title('Histogram');
 
     %% A figure showing the edges of the image and the original image with the outer lines and the centroids of the letters
-    figure('Name','Matricula - Edges y Centroids');
+    figure('Name','Matricula - Edges yCentroids');
     
     % Encontrar bordes de la imagen
     E = edge(I, 'Canny');
     subplot(1,2,1), imshow(E), title('Edges');
     
     % Encontrar las regiones conexas (caracteres) en la imagen
-    props = regionprops(E,'Centroid', 'Eccentricity');
+    props = regionprops(E,'Centroid', 'Area', 'Perimeter', 'MajorAxisLength', 'MinorAxisLength');
     
-    % Establecer un umbral máximo para la excentricidad de las regiones conexas
-    excentricidad_maxima = 0.05; % ajusta este valor según tus necesidades
+    % Establecer umbrales para los filtros
+    area_minima = 100; % ajusta este valor según tus necesidades
+    area_max = 600; % ajusta este valor según tus necesidades
+    relacion_aspecto_minima = 1; % ajusta este valor según tus necesidades
+    relacion_aspecto_maxima = 4; % ajusta este valor según tus necesidades
+    compacidad_minima = 110; % ajusta este valor según tus necesidades
     
-    % Filtrar los centroides por excentricidad máxima
-    centroides_validos = [];
+    % Filtrar los centroides por área, relación de aspecto y compacidad
+    centroides_validos =[ ];
     for i = 1:length(props)
-        if props(i).Eccentricity > excentricidad_maxima
+        area = props(i).Area;
+        relacion_aspecto = props(i).MajorAxisLength/props(i).MinorAxisLength;
+        compacidad = props(i).Perimeter^2/area;
+        %fprintf('Centroide: (%.2f, %.2f) - Area: %.2f - Relacion Aspecto: %.2f - Compacidad: %.2f\n', props(i).Centroid(1), props(i).Centroid(2), area, relacion_aspecto, compacidad);
+        if area < area_max && area > area_minima && relacion_aspecto > relacion_aspecto_minima && relacion_aspecto < relacion_aspecto_maxima && compacidad > compacidad_minima
             centroides_validos = [centroides_validos; props(i).Centroid];
         end
     end
