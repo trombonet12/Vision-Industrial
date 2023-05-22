@@ -38,6 +38,9 @@ for i = 1:length(lista_archivos)
         
         % Invocamos a la función de procesamiento
         procesada = process_license_plate(imagen);
+
+        % Provisional
+        break;
         
     end
 end
