@@ -40,7 +40,7 @@ for i = 1:length(lista_archivos)
         procesada = process_license_plate(imagen);
 
         % Provisional
-        %break;
+        break;
         
     end
 end

@@ -20,11 +20,11 @@ function matricula = process_license_plate(imagen)
     props = regionprops(E,'Centroid', 'Area', 'Perimeter', 'MajorAxisLength', 'MinorAxisLength');
     
     % Establecer umbrales para los filtros
-    area_minima = 100; % ajusta este valor según tus necesidades
-    area_max = 600; % ajusta este valor según tus necesidades
-    relacion_aspecto_minima = 1; % ajusta este valor según tus necesidades
-    relacion_aspecto_maxima = 4; % ajusta este valor según tus necesidades
-    compacidad_minima = 110; % ajusta este valor según tus necesidades
+    area_minima = 100; 
+    area_max = 600; 
+    relacion_aspecto_minima = 1; 
+    relacion_aspecto_maxima = 4; 
+    compacidad_minima = 110; 
     
     % Filtrar los centroides por área, relación de aspecto y compacidad
     centroides_validos =[ ];
@@ -44,6 +44,44 @@ function matricula = process_license_plate(imagen)
     % Dibujar los centroides de los caracteres válidos
     hold on;
     plot(centroides_validos(:,1), centroides_validos(:,2), 'r*');
+    hold off;
+
+    % Aplicar la transformada de Hough para encontrar las líneas verticales de la matrícula
+    [H,theta,rho] = hough(E, 'Theta', -89:0.1:89);
+    P  = houghpeaks(H,3);
+    lines = houghlines(E,theta,rho,P,'FillGap',700);
+
+    hold on;
+    x_max = -Inf;
+    x_min = Inf;
+    line_max = [];
+    line_min = [];
+    for k = 1:length(lines)
+       xy = [lines(k).point1; lines(k).point2];
+       x = xy(:,1);
+       if max(x) > x_max
+           x_max = max(x);
+           line_max = xy;
+       end
+       if min(x) < x_min
+           x_min = min(x);
+           line_min = xy;
+       end
+    end
+    plot(line_max(:,1),line_max(:,2),'LineWidth',2,'Color','green');
+    plot(line_min(:,1),line_min(:,2),'LineWidth',2,'Color','green');
+    hold off;
+
+    % Aplicar la transformada de Hough para encontrar las líneas horizontales de la matrícula
+    [H,theta,rho] = hough(E);
+    P  = houghpeaks(H,3);
+    lines = houghlines(E,theta,rho,P,'FillGap',700);
+
+    hold on;
+    for k = 1:length(lines)
+       xy = [lines(k).point1; lines(k).point2];
+       plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');
+    end
     hold off;
 
     %% Output
