@@ -10,7 +10,7 @@ function matricula = process_license_plate(imagen)
     subplot(1,2,2), imhist(I), title('Histogram');
 
     %% A figure showing the edges of the image and the original image with the outer lines and the centroids of the letters
-    figure('Name','Matricula - Edges yCentroids');
+    figure('Name','Matricula - Edges y Centroids');
     
     % Encontrar bordes de la imagen
     E = edge(I, 'Canny');
@@ -82,6 +82,36 @@ function matricula = process_license_plate(imagen)
        xy = [lines(k).point1; lines(k).point2];
        plot(xy(:,1),xy(:,2),'LineWidth',2,'Color','green');
     end
+    hold off;
+
+    %% A figure showing the image after a thresholding, the skeletons of the letters and the endpoints/branchpoints of the letters
+    figure('Name','Matricula - Binarizacion, Esqueletos y Puntos');
+        
+    % Binarizar la imagen utilizando un umbral adaptativo
+    BW = imbinarize(I, graythresh(I));
+    
+    % Eliminar los objetos pequeños de la imagen binarizada
+    BW = bwareaopen(BW, 30);
+    
+    % Realizar una erosión y una dilatación para eliminar pequeños huecos en los caracteres
+    SE = strel('disk',2);
+    BW = imerode(BW, SE);
+    BW = imdilate(BW, SE);
+    subplot(1,3,1), imshow(BW), title('Binarizacion');
+        
+    % Obtener el esqueleto de la imagen binarizada
+    skeleton = bwmorph(BW, 'thin', Inf);
+    subplot(1,3,2), imshow(skeleton), title('Esqueleto');
+    
+    % Obtener los puntos finales y de ramificación del esqueleto
+    endpoints = bwmorph(skeleton, 'endpoints');
+    branchpoints = bwmorph(skeleton, 'branchpoints');
+    subplot(1,3,3), imshow(skeleton), title('Puntos');
+    hold on;
+    [x_end, y_end] = find(endpoints);
+    plot(y_end,x_end,'r.','MarkerSize',10);
+    [x_br, y_br] = find(branchpoints);
+    plot(y_br,x_br,'b.','MarkerSize',10);
     hold off;
 
     %% Output
