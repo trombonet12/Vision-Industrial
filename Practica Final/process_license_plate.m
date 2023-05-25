@@ -86,33 +86,71 @@ function matricula = process_license_plate(imagen)
 
     %% A figure showing the image after a thresholding, the skeletons of the letters and the endpoints/branchpoints of the letters
     figure('Name','Matricula - Binarizacion, Esqueletos y Puntos');
+    
+    % Inicializar el contador de letras procesadas
+    letra_num = 1;
+    
+    % Filtrar los centroides por área, relación de aspecto y compacidad
+    for i = 1:length(centroides_validos)
         
-    % Binarizar la imagen utilizando un umbral adaptativo
-    BW = imbinarize(I, graythresh(I));
-    
-    % Eliminar los objetos pequeños de la imagen binarizada
-    BW = bwareaopen(BW, 30);
-    
-    % Realizar una erosión y una dilatación para eliminar pequeños huecos en los caracteres
-    SE = strel('disk',2);
-    BW = imerode(BW, SE);
-    BW = imdilate(BW, SE);
-    subplot(1,3,1), imshow(BW), title('Binarizacion');
+        % Obtener las coordenadas del centroide actual
+        cx = centroides_validos(i,1);
+        cy = centroides_validos(i,2);
         
-    % Obtener el esqueleto de la imagen binarizada
-    skeleton = bwmorph(BW, 'thin', Inf);
-    subplot(1,3,2), imshow(skeleton), title('Esqueleto');
-    
-    % Obtener los puntos finales y de ramificación del esqueleto
-    endpoints = bwmorph(skeleton, 'endpoints');
-    branchpoints = bwmorph(skeleton, 'branchpoints');
-    subplot(1,3,3), imshow(skeleton), title('Puntos');
-    hold on;
-    [x_end, y_end] = find(endpoints);
-    plot(y_end,x_end,'r.','MarkerSize',10);
-    [x_br, y_br] = find(branchpoints);
-    plot(y_br,x_br,'b.','MarkerSize',10);
-    hold off;
+        % Calcular la región de interés para la letra actual
+        roi = [cx-40 cy-60 80 120];
+        if roi(1) < 1
+            roi(1) = 1;
+        end
+        if roi(2) < 1
+            roi(2) = 1;
+        end
+        if roi(1)+roi(3) > size(I,2)
+            roi(3) = size(I,2)-roi(1);
+        end
+        if roi(2)+roi(4) > size(I,1)
+            roi(4) = size(I,1)-roi(2);
+        end
+        
+        % Segmentar la imagen original utilizando la región de interés
+        I_letra = imcrop(I, roi);
+        
+        % Binarizar la imagen utilizando un umbral adaptativo
+        BW = imbinarize(I_letra, graythresh(I_letra));
+        
+        % Eliminar los objetos pequeños de la imagen binarizada
+        BW = bwareaopen(BW, 30);
+        
+        % Realizar una erosión y una dilatación para eliminar pequeños huecos en los caracteres
+        SE = strel('disk',2);
+        BW = imerode(BW, SE);
+        BW = imdilate(BW, SE);
+        
+        % Obtener el esqueleto de la imagen binarizada
+        skeleton = bwmorph(BW, 'thin', Inf);
+
+        % Obtener los puntos finales y de ramificación del esqueleto
+        endpoints = bwmorph(skeleton, 'endpoints');
+        branchpoints = bwmorph(skeleton, 'branchpoints');
+        
+        % Mostrar la letra actual
+        subplot(length(centroides_validos),3,(letra_num-1)*3+1), imshow(I_letra), title(sprintf('Letra %d', letra_num));
+        
+        % Mostrar la imagen binarizada de la letra actual
+        subplot(length(centroides_validos),3,(letra_num-1)*3+2), imshow(BW), title('Binarizacion');
+        
+        % Mostrar el esqueleto de la letra actual
+        subplot(length(centroides_validos),3,(letra_num-1)*3+3), imshow(skeleton), title('Esqueleto y Puntos');
+        hold on;
+        [x_end, y_end] = find(endpoints);
+        plot(y_end,x_end,'r.','MarkerSize',10);
+        [x_br, y_br] = find(branchpoints);
+        plot(y_br,x_br,'b.','MarkerSize',10);
+        hold off;
+        
+        % Incrementar el contador de letras procesadas
+        letra_num = letra_num + 1;
+    end
 
     %% Output
     matricula = 1;
