@@ -20,13 +20,14 @@ function matricula = process_license_plate(imagen)
     props = regionprops(E,'Centroid', 'Area', 'Perimeter', 'MajorAxisLength', 'MinorAxisLength');
     
     % Establecer umbrales para los filtros
-    area_minima = 100; 
+    area_minima = 200; 
     area_max = 600; 
     relacion_aspecto_minima = 1; 
     relacion_aspecto_maxima = 4; 
     compacidad_minima = 110; 
+    distancia_minima = 5;
     
-    % Filtrar los centroides por área, relación de aspecto y compacidad
+    % Filtrar los centroides por área, relación de aspecto, compacidad y distancia mínima
     centroides_validos =[ ];
     for i = 1:length(props)
         area = props(i).Area;
@@ -34,7 +35,18 @@ function matricula = process_license_plate(imagen)
         compacidad = props(i).Perimeter^2/area;
         %fprintf('Centroide: (%.2f, %.2f) - Area: %.2f - Relacion Aspecto: %.2f - Compacidad: %.2f\n', props(i).Centroid(1), props(i).Centroid(2), area, relacion_aspecto, compacidad);
         if area < area_max && area > area_minima && relacion_aspecto > relacion_aspecto_minima && relacion_aspecto < relacion_aspecto_maxima && compacidad > compacidad_minima
-            centroides_validos = [centroides_validos; props(i).Centroid];
+            % Revisar que el centroide actual tenga una distancia mínima de 5 píxeles con todos los centroides ya guardados
+            es_valido = true;
+            for j = 1:size(centroides_validos, 1)
+                distancia = norm(props(i).Centroid - centroides_validos(j,:));
+                if distancia < distancia_minima
+                    es_valido = false;
+                    break;
+                end
+            end
+            if es_valido
+                centroides_validos = [centroides_validos; props(i).Centroid];
+            end
         end
     end
     
@@ -152,6 +164,60 @@ function matricula = process_license_plate(imagen)
         letra_num = letra_num + 1;
     end
 
+    %% Detectamos las 3 primeras letras y las imprimimos por pantalla
+    letras_detectadas = '';
+    for i = 1:min(3, length(centroides_validos))
+        % Obtener las coordenadas del centroide actual
+        cx = centroides_validos(i,1);
+        cy = centroides_validos(i,2);
+        
+        % Calcular la región de interés para la letra actual
+        roi = [cx-45 cy-60 90 120];
+        if roi(1) < 1
+            roi(1) = 1;
+        end
+        if roi(2) < 1
+            roi(2) = 1;
+        end
+        if roi(1)+roi(3) > size(I,2)
+            roi(3) = size(I,2)-roi(1);
+        end
+        if roi(2)+roi(4) > size(I,1)
+            roi(4) = size(I,1)-roi(2);
+        end
+        
+        % Segmentar la imagen original utilizando la región de interés
+        I_letra = imcrop(I, roi);
+        
+        % Binarizar la imagen utilizando un umbral adaptativo
+        BW = imbinarize(I_letra, graythresh(I_letra));
+        
+        % Eliminar los objetos pequeños de la imagen binarizada
+        BW = bwareaopen(BW, 50);
+        
+        % Contar el número de objetos en la imagen binarizada
+        [~, num_objetos] = bwlabel(BW);
+        num_agujeros = num_objetos - 1;
+        
+        % Determinar qué letra es según el número de agujeros
+        switch num_agujeros
+            case 0
+                letra = 'c';
+            case 1
+                letra = 'a';
+            case 2
+                letra = 'b';
+            otherwise
+                letra = '?';
+        end
+        
+        % Agregar la letra detectada a la cadena de letras
+        letras_detectadas = [letras_detectadas, letra];
+    end
+    
+    % Imprimir las letras detectadas
+    fprintf('Las 3 primeras letras detectadas son: %s\n', letras_detectadas);
+        
     %% Output
     matricula = 1;
 end
