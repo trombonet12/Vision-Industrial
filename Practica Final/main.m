@@ -18,8 +18,10 @@ ruta_carpeta = fullfile(ruta_carpeta_actual, nombre_carpeta);
 % Carga la lista de archivos en la carpeta
 lista_archivos = dir(ruta_carpeta);
 
-% Inicializa un contador para el bucle
-contador = 0;
+% Inicializamos contadores
+D = 0;
+GB = 0;
+PL = 0;
 
 % Itera a través de la lista de archivos
 for i = 1:length(lista_archivos)
@@ -30,20 +32,25 @@ for i = 1:length(lista_archivos)
     % Si el archivo actual es una imagen, entonces cárgalo en MATLAB
     if endsWith(nombre_archivo, {'.png'})
         
-        % Incrementa el contador
-        contador = contador + 1;
-        
         % Carga la imagen en MATLAB
         imagen = imread(fullfile(ruta_carpeta, nombre_archivo));
         
         % Invocamos a la función de procesamiento
-        procesada = process_license_plate(imagen);
+        matricula = process_license_plate(imagen);
+        nacionalitat = process_nacionalitat(imagen);
+    
+        % Imprimir las letras detectadas
+        fprintf('%s-%s\n', nacionalitat, matricula);
 
-        % Provisional
-        break;
-        
+        switch nacionalitat
+            case "D"
+                D = D + 1;
+            case "GB"
+                GB = GB + 1;
+            case "PL"
+                PL = PL + 1;
+        end
     end
 end
 
-% Imprime el número total de imágenes procesadas
-fprintf('Se procesaron %d imágenes.\n', contador);
+fprintf("------\nTotals:\nGB: %d\nPL: %d\nD: %d\n", GB, PL, D);

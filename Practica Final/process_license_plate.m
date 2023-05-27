@@ -99,80 +99,40 @@ function matricula = process_license_plate(imagen)
     %% A figure showing the image after a thresholding, the skeletons of the letters and the endpoints/branchpoints of the letters
     figure('Name','Matricula - Binarizacion, Esqueletos y Puntos');
     
-    % Inicializar el contador de letras procesadas
-    letra_num = 1;
+    % Convertir la imagen a blanco y negro mediante un umbral
+    umbral = graythresh(I);
+    BW = imbinarize(I,umbral);
     
-    % Filtrar los centroides por área, relación de aspecto y compacidad
-    for i = 1:length(centroides_validos)
-        
-        % Obtener las coordenadas del centroide actual
-        cx = centroides_validos(i,1);
-        cy = centroides_validos(i,2);
-        
-        % Calcular la región de interés para la letra actual
-        roi = [cx-40 cy-60 80 120];
-        if roi(1) < 1
-            roi(1) = 1;
-        end
-        if roi(2) < 1
-            roi(2) = 1;
-        end
-        if roi(1)+roi(3) > size(I,2)
-            roi(3) = size(I,2)-roi(1);
-        end
-        if roi(2)+roi(4) > size(I,1)
-            roi(4) = size(I,1)-roi(2);
-        end
-        
-        % Segmentar la imagen original utilizando la región de interés
-        I_letra = imcrop(I, roi);
-        
-        % Binarizar la imagen utilizando un umbral adaptativo
-        BW = imbinarize(I_letra, graythresh(I_letra));
-        
-        % Eliminar los objetos pequeños de la imagen binarizada
-        BW = bwareaopen(BW, 30);
-        
-        % Realizar una erosión y una dilatación para eliminar pequeños huecos en los caracteres
-        SE = strel('disk',2);
-        BW = imerode(BW, SE);
-        BW = imdilate(BW, SE);
-        
-        % Obtener el esqueleto de la imagen binarizada
-        skeleton = bwmorph(BW, 'thin', Inf);
-
-        % Obtener los puntos finales y de ramificación del esqueleto
-        endpoints = bwmorph(skeleton, 'endpoints');
-        branchpoints = bwmorph(skeleton, 'branchpoints');
-        
-        % Mostrar la letra actual
-        subplot(length(centroides_validos),3,(letra_num-1)*3+1), imshow(I_letra), title(sprintf('Letra %d', letra_num));
-        
-        % Mostrar la imagen binarizada de la letra actual
-        subplot(length(centroides_validos),3,(letra_num-1)*3+2), imshow(BW), title('Binarizacion');
-        
-        % Mostrar el esqueleto de la letra actual
-        subplot(length(centroides_validos),3,(letra_num-1)*3+3), imshow(skeleton), title('Esqueleto y Puntos');
-        hold on;
-        [x_end, y_end] = find(endpoints);
-        plot(y_end,x_end,'r.','MarkerSize',10);
-        [x_br, y_br] = find(branchpoints);
-        plot(y_br,x_br,'b.','MarkerSize',10);
-        hold off;
-        
-        % Incrementar el contador de letras procesadas
-        letra_num = letra_num + 1;
-    end
+    % Mostrar la imagen binarizada
+    subplot(1,3,1), imshow(BW), title('Binarizacion');
+    
+    % Encontrar los esqueletos de los caracteres
+    esqueletos = bwmorph(BW,'skel',Inf);
+    
+    % Mostrar los esqueletos de los caracteres
+    subplot(1,3,2), imshow(esqueletos), title('Esqueletos');
+    
+    % Encontrar los puntos finales y de ramificación de los esqueletos de los caracteres
+    endpoints = bwmorph(esqueletos,'endpoints');
+    branchpoints = bwmorph(esqueletos,'branchpoints');
+    
+    % Mostrar los puntos finales y de ramificación de los esqueletos de los caracteres
+    subplot(1,3,3), imshow(esqueletos), hold on;
+    [y,x] = find(endpoints);
+    plot(x,y,'r*');
+    [y,x] = find(branchpoints);
+    plot(x,y,'go');
+    hold off;
 
     %% Detectamos las 3 primeras letras y las imprimimos por pantalla
     letras_detectadas = '';
-    for i = 1:min(3, length(centroides_validos))
+    for i = 1:min(7, length(centroides_validos))
         % Obtener las coordenadas del centroide actual
         cx = centroides_validos(i,1);
         cy = centroides_validos(i,2);
         
         % Calcular la región de interés para la letra actual
-        roi = [cx-45 cy-60 90 120];
+        roi =[cx-45 cy-60 90 120];
         if roi(1) < 1
             roi(1) = 1;
         end
@@ -191,33 +151,53 @@ function matricula = process_license_plate(imagen)
         
         % Binarizar la imagen utilizando un umbral adaptativo
         BW = imbinarize(I_letra, graythresh(I_letra));
-        
+        skeleton = bwmorph(BW, 'thin', Inf);
         % Eliminar los objetos pequeños de la imagen binarizada
         BW = bwareaopen(BW, 50);
         
         % Contar el número de objetos en la imagen binarizada
         [~, num_objetos] = bwlabel(BW);
         num_agujeros = num_objetos - 1;
-        
-        % Determinar qué letra es según el número de agujeros
-        switch num_agujeros
-            case 0
-                letra = 'c';
-            case 1
-                letra = 'a';
-            case 2
-                letra = 'b';
-            otherwise
-                letra = '?';
+        if i<=3
+            % Determinar qué letra es según el número de agujeros
+            switch num_agujeros
+                case 0
+                    letra = 'C';
+                case 1
+                    letra = 'A';
+                case 2
+                    letra = 'B';
+                otherwise
+                    letra = '?';
+       
+            end
+        else
+             switch num_agujeros
+                case 0
+                    letra_7=imread('lletres\7.png');
+                    letra_7=im2gray(letra_7);
+                    letra_7=bwmorph(letra_7, 'thin', Inf);
+                    correlacion_7 = normxcorr2(letra_7, skeleton);
+                    umbral = 0.31; % Ajusta el umbral según sea necesario
+                    posiciones_7 = find(correlacion_7 > umbral);   
+                        if posiciones_7~=0
+                        letra = '7';
+                        else
+                        letra = '1';   
+                        end  
+                case 1
+                    letra = '0';
+                case 2
+                    letra = '8';
+                otherwise
+                    letra = '?';
+       
+             end
         end
-        
         % Agregar la letra detectada a la cadena de letras
         letras_detectadas = [letras_detectadas, letra];
     end
-    
-    % Imprimir las letras detectadas
-    fprintf('Las 3 primeras letras detectadas son: %s\n', letras_detectadas);
-        
+
     %% Output
-    matricula = 1;
+    matricula = letras_detectadas;
 end
